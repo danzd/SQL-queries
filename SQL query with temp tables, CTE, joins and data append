@@ -1,4 +1,4 @@
--- table names, employee names and some columns were modified for data privacy.
+-- Sensitive data were renamed to protect data privacy.
 
 DROP TABLE IF EXISTS LASTSUBJECT;
 CREATE TEMPORARY TABLE LASTSUBJECT AS (
