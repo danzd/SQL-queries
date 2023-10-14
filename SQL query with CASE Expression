@@ -1,0 +1,27 @@
+--Example of a SQL query using  CASE Expression 
+-- (Column and table names modified to protect data privacy)
+
+Select 
+tp_last_updated_by_user,
+tr_created_by,
+LEFT(ASSOCIATE, CHARINDEX('@',ASSOCIATE)-1) as ASSOCIATE_LOGIN,
+VRID,
+tp_id,
+shipper_account
+FROM
+(select
+*,
+CASE
+When tp_last_updated_by_user in ('XXX')
+THEN tp_last_updated_by_user
+ELSE tr_created_by
+END AS ASSOCIATE
+from
+Table1
+WHERE
+shipper_account = 'YYY'
+AND (tp_last_updated_by_user IN ('XXX')
+
+OR tr_created_by IN ('XXX')
+)
+AND tp_last_updated_date BETWEEN '2023-09-17 00:00:00' and '2023-09-23 23:59:59')
