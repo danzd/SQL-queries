@@ -1,0 +1,61 @@
+--Example of a SQL query using SUBSTRING and CHARINDEX. Query is extracting ID from case subjet to gother information from othere  tables
+-- (Column and table names modified to protect data privacy)
+
+
+WITH FIRSTSUBJECT_CTE
+AS
+(
+Select
+b.case_ID as Case_ID1,
+comm_subject,
+FirstResponse
+FROM
+Table1 a
+RIGHT JOIN (
+Select
+case_ID,
+MIN(comm_date_local) as FirstResponse
+from Table1
+GROUP BY case_ID) b
+on a.case_ID = b.case_ID
+AND a.comm_date_local = b.FirstResponse
+)
+,
+TRANSFERED_CTE
+AS
+(
+select 
+a.case_id,
+creation_date_utc,
+initial_email_queue_name,
+comm_subject,
+SUBSTRING(comm_subject,CHARINDEX('11',comm_subject),9) as VRID
+from Table2 a
+LEFT JOIN FIRSTSUBJECT_CTE b
+ON a.case_id = b.Case_ID1
+WHERE
+-- CHANGE THE DATE ON THE LINE BELOW
+creation_date_utc between '2023-08-20 00:00:00' and '2023-08-26 23:59:59'
+AND
+email_queue_name NOT IN ('XXX')
+AND
+initial_email_queue_name IN ('XXX')
+
+AND email_queue_name NOT IN ('XXX')
+)
+Select
+a.case_id,
+creation_date_utc,
+comm_subject,
+a.VRID,
+CASE
+WHEN comm_subject LIKE ('%FMC%') THEN 'SITE'
+WHEN comm_subject NOT LIKE ('%FMC%') THEN 'CARRIER'
+END AS Reported_BY,
+orig_node,
+dest_node,
+vehicle_carrier
+FROM TRANSFERED_CTE a
+LEFT JOIN Table3 b
+ON a.VRID = b.VRID
+ORDER BY creation_date_utc
