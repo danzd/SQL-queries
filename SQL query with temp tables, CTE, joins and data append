@@ -1,0 +1,114 @@
+-- table names, employee names and some columns were modified for data privacy.
+
+DROP TABLE IF EXISTS LASTSUBJECT;
+CREATE TEMPORARY TABLE LASTSUBJECT AS (
+
+Select
+MAX(comm_subject) as Subject,
+b.case_ID as Case_ID1
+FROM
+XXX a
+RIGHT JOIN (
+Select
+case_ID,
+MAX(comm_date_local) as LastResponse
+from XXX
+GROUP BY case_ID) b
+on a.case_ID = b.case_ID
+AND a.comm_date_local = b.LastResponse
+GROUP BY Case_ID1
+);
+
+--ASSIGNED CASES
+WITH Assigned_CTE
+As
+(
+Select
+-- it provides the name of the AA that replied on the case
+-- if the first reply was provided by someone from diffferent team as the case was raised to wrong queue, it will provide the AA from the team who last assigned the case
+Case
+When first_handling_agent_id IN ('111','222','333','444') THEN first_handling_agent_id
+When first_handling_agent_id NOT IN ('111','222','333','444'') THEN first_touched_agent_id
+When first_handling_agent_id is null THEN first_touched_agent_id
+Else 'Unknown'
+END AS Associate,
+CASE
+When b.First_Response is not null THEN b.First_Response
+WHEN b.First_Response is null THEN creation_date_local
+Else null
+END AS DateTime,
+Date(DateTime),
+a.case_ID,
+c.Subject,
+'Assigned Case' as Category
+FROM YYY a
+--subquery for obtaining first response datetime
+LEFT JOIN (select
+case_ID,
+MIN(comm_date_local) as First_Response
+from XXX
+Where
+is_zzz_sender ='Y'
+AND owner_agent_login IN ('111','222','333','444')
+AND comm_date_local >= '01-01-2019'
+GROUP BY case_ID) b
+ON a.case_ID = b.case_ID
+--subquery for obtaining final subject
+LEFT JOIN LASTSUBJECT c
+ON a.case_ID = c.case_ID1
+WHERE 
+creation_date_local >= '01-01-2019'
+AND email_queue_name NOT IN ('ZZZ')
+AND (first_handling_agent_id IN ('111','222','333','444')
+OR first_touched_agent_id IN ('111','222','333','444'))
+)
+,
+-- RESOLVED CASES
+Resolved_CTE 
+AS
+(
+Select
+resolver as Associate,
+case_resolve_date_local as DateTime,
+Date(DateTime),
+a.case_ID,
+Subject,
+'Resolved Case' as Category
+from YYY a 
+LEFT JOIN LASTSUBJECT c
+ON a.case_ID = c.case_ID1
+
+Where 
+creation_date_local >= '01-01-2019'
+AND email_queue_name NOT IN ('ZZZ')
+AND resolver IN ('111','222','333','444')
+)
+,
+-- SENT MESSAGES
+Followup_CTE 
+AS 
+(
+select
+owner_agent_login as Associate,
+comm_date_local as DateTime,
+Date(DateTime),
+a.CASE_ID,
+comm_subject as Subject,
+'Sent Message' as Category
+from XXX a
+LEFT JOIN YYY b
+ON a.CASE_ID = b.CASE_ID
+Where
+comm_date_local >= '01-01-2019'
+AND email_queue_name NOT IN ('ZZZ')
+AND owner_agent_login IN ('111','222','333','444')
+AND is_zzz_sender ='Y'
+)
+
+-- DATA APPEND
+Select * from Assigned_CTE
+UNION ALL
+Select * from Resolved_CTE
+UNION ALL
+Select * from Followup_CTE
+ORDER BY DateTime
